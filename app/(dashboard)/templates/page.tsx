@@ -1,4 +1,4 @@
-""use client";
+"use client";
 import Topbar from "@/components/topbar";
 import Sidebar from "@/components/sidebar";
 import { useEffect, useState } from "react";
