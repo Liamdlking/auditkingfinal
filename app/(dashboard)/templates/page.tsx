@@ -1,0 +1,53 @@
+"use client";
+import Topbar from "@/components/topbar";
+import Sidebar from "@/components/sidebar";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+
+type Profile={id:string;email:string;role:"full_admin"|"admin"|"user"};
+type Template={id:string;title:string;site_id:string|null};
+
+export default function Templates(){
+  const [p,setP]=useState<Profile|null>(null);
+  const [rows,setRows]=useState<Template[]>([]);
+  const [title,setTitle]=useState("");
+
+  useEffect(()=>{(async()=>{
+    const { data: { session } } = await supabase.auth.getSession();
+    if(!session){window.location.href="/login";return;}
+    const { data: prof } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+    setP(prof as any);
+    const { data } = await supabase.from("templates").select("*").order("title");
+    setRows(data||[]);
+  })();},[]);
+
+  async function add(){
+    if(!title.trim()) return;
+    const { data } = await supabase.from("templates").insert({ title, site_id: null }).select("*").single();
+    if(data) setRows(r=>[...r, data]);
+    setTitle("");
+  }
+
+  if(!p) return <div className="p-8">Loading...</div>;
+
+  return (
+    <div>
+      <Topbar email={p.email}/>
+      <div className="container-max py-6 flex gap-6">
+        <Sidebar role={p.role}/>
+        <main className="flex-1 space-y-4">
+          <h1 className="text-2xl font-bold">Templates</h1>
+          {(p.role==="full_admin"||p.role==="admin") && (
+            <div className="flex gap-2">
+              <input className="input" placeholder="New template title" value={title} onChange={e=>setTitle(e.target.value)}/>
+              <button className="btn" onClick={add}>Add</button>
+            </div>
+          )}
+          <ul className="grid sm:grid-cols-2 gap-2">
+            {rows.map(t=>(<li key={t.id} className="card p-3">{t.title}</li>))}
+          </ul>
+        </main>
+      </div>
+    </div>
+  );
+}
